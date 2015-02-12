@@ -1,9 +1,12 @@
+#include <algorithm>
 #include <math.h>
 #include <assert.h>
 
 #include "vector.hh"
 #include "matrix.hh"
 #include "geometry.hh"
+
+using std::min;
 
 /*
   Compute the normal of a 2-simplex, using its parity.
@@ -263,8 +266,8 @@ point_to_line_segment_distance3 (Vector3 p, Vector3 l1, Vector3 l2)
     }
   else
     {
-      return euclidian_distance (l1, p)
-	<? euclidian_distance (l2, p);
+      return min(euclidian_distance (l1, p),
+		 euclidian_distance (l2, p));
     }
 }
 
@@ -309,14 +312,16 @@ Real point_to_simplex_distance3 (Simplex const &plex, Node_vector_func3 func,
   for (int i = 0 ; i < plex.count();  i++)
     for (int j = i+1 ; j < plex.count();  j++)
       {
-	dist = dist <?  point_to_line_segment_distance3 (point, vs[i], vs[j]);
+	dist = min (dist, 
+		    point_to_line_segment_distance3 (point, vs[i], vs[j]));
       }
 
   for (int i = 0 ; i < plex.count();  i ++ )
     for (int j = i+1 ; j < plex.count();  j ++ )
       for (int k = j+1 ; k < plex.count();  k ++ )          
 	{
-	  dist = dist <? point_to_triangle_distance3 (point, vs[i], vs[j], vs[k]);
+	  dist = min (dist,
+		      point_to_triangle_distance3 (point, vs[i], vs[j], vs[k]));
 	}
   return dist;
 }
@@ -410,10 +415,10 @@ line_segment_to_line_segment_distance (Vector3 p, Vector3 q, Vector3 l1, Vector3
 	every call of point_to_line_segment_distance
        */
       return
-	point_to_line_segment_distance3 (p, l1, l2)
-	<? point_to_line_segment_distance3 (q, l1, l2)
-	<? point_to_line_segment_distance3 (l1, p, q)
-	<? point_to_line_segment_distance3 (l2, p, q); 
+	min(point_to_line_segment_distance3 (p, l1, l2),
+	    min (point_to_line_segment_distance3 (q, l1, l2),
+		 min (point_to_line_segment_distance3 (l1, p, q),
+		      point_to_line_segment_distance3 (l2, p, q)))); 
     }
 }
 
@@ -435,12 +440,13 @@ triangle_to_line_segment_distance3 (Simplex const & plex,Node_vector_func3 func,
   
   for (int i = 0; i <  3; i++)
     {
-      dist = dist <? line_segment_to_line_segment_distance (vs[(i+1)%3], vs[(i+2)%3],
-							    p1, p2);
+      dist = min (dist, 
+		  line_segment_to_line_segment_distance (vs[(i+1)%3], vs[(i+2)%3],
+							 p1, p2));
     }
 
-  dist = dist <?  point_to_triangle_distance3 (p1, vs[0], vs[1], vs[2]);
-  dist = dist <?  point_to_triangle_distance3 (p2, vs[0], vs[1], vs[2]);
+  dist = min (dist, point_to_triangle_distance3 (p1, vs[0], vs[1], vs[2]));
+  dist = min (dist, point_to_triangle_distance3 (p2, vs[0], vs[1], vs[2]));
 
 
   Real param ;
@@ -467,9 +473,9 @@ tetrahedron_to_line_segment_distance3 (Simplex const & plex, Node_vector_func3 f
   
   for (int i = 0; i < 4; i++)
     {
-      dist = dist <? triangle_to_line_segment_distance3 (plex.get_subset (i),
-							 func, def,
-							 p1, p2);
+      dist = min (dist, triangle_to_line_segment_distance3 (plex.get_subset (i),
+							    func, def,
+							    p1, p2));
     }
 
   return dist;

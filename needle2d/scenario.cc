@@ -1,5 +1,8 @@
+#include <algorithm>
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <time.h>
 
@@ -21,6 +24,10 @@
 #include "needle-inserter.hh"
 
 
+using std::max;
+using std::min;
+
+
 /*
   Generate nodal forces , and apply to the mesh.
 */
@@ -31,8 +38,8 @@ node_forces_scenario (Maubach_tree * tree,
 {
   Real depth = 0.065 ;
  
-  Real h = get_number_setting ("refinement-h")
-    <? get_number_setting ("initial-h");
+  Real h = min (get_number_setting ("refinement-h"),
+		get_number_setting ("initial-h"));
 
   Real x = 0.0;
   int n = int (depth / h);
@@ -42,7 +49,7 @@ node_forces_scenario (Maubach_tree * tree,
     {
       Vector2 lookup_loc = Vector2 (x, 0.05);
 
-      Real ref_h =sqrt(2) * h * 1.01;
+      Real ref_h = sqrt(2) * h * 1.01;
       refine_around2 (tree, ref_h,  lookup_loc, &reference_location2, def);
       Element * e = tree->locate (lookup_loc, &reference_location2, def);
 
@@ -133,8 +140,8 @@ angled_node_forces_scenario (Maubach_tree * tree,
 {
   Auto_needle_insert * ni = new Auto_needle_insert();
  
-  Real h = get_number_setting ("refinement-h")
-    <? get_number_setting ("initial-h");
+  Real h = min (get_number_setting ("refinement-h"),
+		get_number_setting ("initial-h"));
   Real ref_h =sqrt(2) * h * 1.01;
   Real d = 0.0;
   Vector2 tip = ni->handle_ + ni->max_depth_ * ni->dir_;

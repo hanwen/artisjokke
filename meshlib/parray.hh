@@ -80,7 +80,7 @@ public:
       return (T*&) Array<void*>::elem_ref (i);
     }
   /// access element
-  T *const operator[] (int i) const 
+  T * operator[] (int i) const 
     {
       return (T *const) Array<void*>::elem (i);
     }

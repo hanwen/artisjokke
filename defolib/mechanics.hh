@@ -4,6 +4,7 @@
 Real linear_elastic_energy (Real i1, Real i2, Real i3);
 int linear_elastic_force (Element_state const*, Matrix2* dest, Matrix2 const & src);
 
+typedef Elasticity_functions* Elasticity_functions_pointer;
 
 #define IMPLEMENT_GET_ELASTICITY(NAME) \
 static Elasticity_functions **elasticity_functions;			\
@@ -12,7 +13,7 @@ get_ ##  NAME ## _elasticity (int d)					\
 {									\
   if (!elasticity_functions)						\
     {									\
-      elasticity_functions = new (Elasticity_functions*)[2];		\
+      elasticity_functions = new Elasticity_functions_pointer[2];		\
 									\
       Elasticity_functions3 *e3 = new Elasticity_functions3;		\
       e3->force_function_ = &NAME ## _elastic_force3;			\

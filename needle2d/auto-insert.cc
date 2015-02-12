@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 
 #include "deformation-state.hh"
 #include "auto-insert.hh"

@@ -1,9 +1,12 @@
+#include <algorithm>
 #include <stdio.h> 
 #include <string.h>
 #include <math.h>
 #include <gsl/gsl_cblas.h>
 
 #include "big-vector.hh"
+
+using std::max;
 
 long long vector_flop_count = 0LL ;
 
@@ -232,7 +235,7 @@ big_vector_max_distance (Real const * a, Real  const *b, int n)
     {
       Real d = fabs (*a++ - *b++);
 
-      m =  m  >? d;
+      m =  max(m, d);
     }
 
   vector_flop_count += n;  		//  ? 

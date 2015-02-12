@@ -1,4 +1,5 @@
-
+#include <algorithm>
+using std::max;
 
 void
 MATRIX::fill (Real r)
@@ -251,16 +252,16 @@ MATRIX::hilbert_schmidt_norm () const
 Real
 MATRIX::max_row_sum () const
 {
-  Real max = 0.0;
+  Real maxsum = 0.0;
   for (int i=0; i < DIM; i++)
     {
       Real s = 0.0;
       for (int j=0; j < DIM; j++)
 	s += fabs (elts_[i][j]);
 
-      max = max >? s;
+      maxsum = max (maxsum, s);
     }
-  return max;
+  return maxsum;
 }
 
 /*
@@ -269,16 +270,16 @@ MATRIX::max_row_sum () const
 Real
 MATRIX::max_col_sum () const
 {
-  Real max = 0.0;
+  Real maxsum = 0.0;
   for (int i=0; i < DIM; i++)
     {
       Real s = 0.0;
       for (int j=0; j < DIM; j++)
 	s += fabs (elts_[j][i]);
 
-      max = max >? s;
+      maxsum = max (maxsum, s);
     }
-  return max;
+  return maxsum;
 }
 
 

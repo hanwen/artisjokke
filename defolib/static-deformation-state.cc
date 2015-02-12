@@ -1,5 +1,8 @@
+#include <algorithm>
+
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "deformation-hook.hh"
 #include "static-deformation-state.hh"
@@ -15,6 +18,8 @@
 #include "mechanics.hh"
 #include "convergence-statistics.hh"
 #include "element-state.hh"
+
+using std::max;
 
 Static_deformation_state::Static_deformation_state (int d)
   : Deformation_state (d)
@@ -118,7 +123,8 @@ Static_deformation_state::good_solution ()const
       if (!b)
 	{
 	  log_message ("Not good enough, %d iters\n", iter_state_->iter_count_);
-	  global_max_iteration_count = global_max_iteration_count >? iter_state_->iter_count_;
+	  global_max_iteration_count = 
+	    max (global_max_iteration_count, iter_state_->iter_count_);
 	  
 	  iter_state_->iter_count_ = 0;
 	}
@@ -128,7 +134,8 @@ Static_deformation_state::good_solution ()const
     {
       log_message ("Solution found in %d iterations\n ",  iter_state_->iter_count_);
 
-      global_max_iteration_count = global_max_iteration_count >? iter_state_->iter_count_;
+      global_max_iteration_count = max (global_max_iteration_count,
+					iter_state_->iter_count_);
       
       log_message ("Scale free force comparison: %lg", scale_free_force_comparison ());
 	

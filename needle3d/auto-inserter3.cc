@@ -1,5 +1,6 @@
 #include <time.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "deformation-state.hh"
 #include "auto-inserter3.hh"

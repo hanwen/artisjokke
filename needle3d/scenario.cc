@@ -1,5 +1,7 @@
 #include <time.h>
 #include <math.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "maubach-tree3.hh"
 #include "deformation-state.hh"

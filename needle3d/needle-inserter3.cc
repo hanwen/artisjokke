@@ -1,10 +1,16 @@
+#include <algorithm>
+
 #include <math.h>
+#include <string.h>
 
 #include "deformation-state.hh"
 #include "setting.hh"
 #include "maubach-tree3.hh"
 #include "needle-inserter3.hh"
 #include "geometry.hh"
+
+using std::max;
+using std::min;
 
 /*
   The needle is characterized by the set NEEDLE_ELEMENTS_.
@@ -298,7 +304,7 @@ Needle_inserter3::get_entry_parameter (Vector3 h, Vector3 t) const
     {
       Vector3 c = simplex_centroid3 ((*i)->simplex(),
 				     &deformed_location3, deformation());
-      maxp = maxp >?  (c-t) * dir ;
+      maxp = max (maxp, (c-t) * dir);
       
     }
   return maxp;
@@ -331,8 +337,8 @@ Needle_inserter3::rearrange_boundary_conditions ()
     {
       Vector3 dx = deformed_location3  (i->first,  deformation());
       Real p = (dx * dir) - tipp ;
-      maxp = maxp >? p;
-      minp = minp <? p;
+      maxp = max (maxp, p);
+      minp = min (minp, p);
     }
 
   Real area = 0.0;

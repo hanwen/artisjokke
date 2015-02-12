@@ -1,5 +1,7 @@
 #ifdef OPENGL
 
+#include <algorithm>
+
 #include <math.h>
 
 #include "geometry.hh"
@@ -13,6 +15,9 @@
 #include "needle-inserter-visualize.hh"
 #include "setting.hh"
 #include "auto-inserter3.hh"
+
+using std::max;
+using std::min;
 
 float needle_color [] = {1,0,0, 0.8};
 float ground_color [] = {1.0,1.0,1.0, 0.0};
@@ -56,8 +61,7 @@ Artisjokke_drawer3::process_key (char c )
       
 	  minmax_edge_length3 (&e, &E, (*i)->simplex(),
 			       &reference_location3, deformation_);
-	  mine = mine <? e;
-	  
+	  mine = min (mine, e);
 	}
       printf ("min edge length %lf\n", mine); 
     }

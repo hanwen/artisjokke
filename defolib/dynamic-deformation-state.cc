@@ -3,9 +3,12 @@
 
   (c) 2001 Han-Wen Nienhuys <hanwen@cs.uu.nl>
 */
+#include <algorithm>
+
 #include <sys/time.h>
 #include <sys/time.h>
 #include <math.h>
+#include <string.h>
 #include <stdio.h>
 
 #include "setting.hh"
@@ -17,6 +20,8 @@
 #include "simplex.hh"
 #include "mesh-geometry.hh"
 #include "convergence-statistics.hh"
+
+using std::min;
 
 /*
   Compute acceleration assuming viscosity_ * lumped_mass * velocity
@@ -458,8 +463,8 @@ Dynamic_deformation_state::update_topology (set<Element*> *changes)
     {
       if (!state_array_[i]->degenerate_b_
 	  || !ign_degen)
-	minimum_edge_length_ = minimum_edge_length_
-	  <? state_array_[i]->minimum_edge_length_;
+	minimum_edge_length_ = min (minimum_edge_length_,
+				    state_array_[i]->minimum_edge_length_);
       
       assert (minimum_edge_length_ > 0);
     }

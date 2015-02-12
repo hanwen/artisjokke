@@ -57,7 +57,7 @@ public:
    */
   void find_reactions (Real *dest, Real const * src)const;
   void apply_to_movement (Real * dest, Real const *mov)const;
-  void apply_to_node_movement (Real *dest, Node * dest, Real const* mov)const;
+  void apply_to_node_movement (Real *dest, Node * dest2, Real const* mov)const;
   void node_reaction (Real*, Node*, Real const* ) const;
   Real reaction_length_sq (Real const *) const;
   bool satisfies_constraints (Real const*)const;

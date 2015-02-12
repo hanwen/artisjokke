@@ -1,5 +1,7 @@
 #ifdef OPENGL
 
+#include <algorithm>
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -13,6 +15,7 @@
 #include "deformation-state.hh"
 #include "edge-watcher.hh"
 
+using std::max;
 
 float background [] = {1,1.2,1};
 float background_strength =0.9 ;
@@ -73,7 +76,7 @@ Artisjokke_drawer::focus_on_model ()
 {
   Real rad =0.15;
 
-  distance_ = (rad * 10) >? 2; 
+  distance_ = max ((rad * 10), 2.0); 
   Real  fov = 2.5 * atan (rad  / distance_) * 180.0 / M_PI ; 
   view_drag_.scale_(0) = log (fov) / log (2);
   view_drag_.translate_ = Vector3 (-0.01,-0.01,0);
@@ -88,9 +91,9 @@ Artisjokke_drawer::setup()
   glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   
   focus_on_model();
-  Real  m = 0;
+  Real m = 0;
   for (int i=0; i<3; i++)
-    m = m>? background[i];
+    m = max (m, Real(background[i]));
 
   if (m)
     {

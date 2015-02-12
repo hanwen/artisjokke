@@ -1,3 +1,7 @@
+#include <algorithm>
+
+using std::max;
+using std::min;
 
 
 Element*
@@ -48,19 +52,19 @@ LOCATE_FUNC (Mesh_connectivity *mesh,
  
 
 void
-MINMAX_EDGE_LENGTH (Real *min, Real *max, Simplex const & pl,
+MINMAX_EDGE_LENGTH (Real *minl, Real *maxl, Simplex const & pl,
 		    FUNC func, Deformation_state const *def
 		    )
 {
-  *min = 1e6;
-  *max = 0;
-  for (int i=0; i < pl.count(); i++)
+  *minl = 1e6;
+  *maxl = 0;
+  for (int i = 0; i < pl.count(); i++)
     for (int j = i+1; j < pl.count(); j++)
       {
 	Real a = euclidian_distance ((*func)(pl.node(i), def),
 				     (*func)(pl.node(j), def));
 	
-	*min = *min <? a;
-	*max = *max >? a;
+	*minl = min (*minl, a);
+	*maxl = max (*maxl, a);
       }
 }

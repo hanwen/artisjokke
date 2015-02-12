@@ -10,8 +10,8 @@ extern bool global_test_flag;
 
 struct Number_option_list_entry
 {
-  char * name;
-  char * desc;
+  char const * name;
+  char const * desc;
   Real value;
 
   static int compare ( Number_option_list_entry const &a,

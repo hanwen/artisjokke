@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "geometry.hh"
 #include "maubach-tree3.hh"
 #include "vector.hh"
@@ -47,7 +49,7 @@ Maubach_tree3::Maubach_tree3 ()
   : Mesh_connectivity (3)
 {
   dim_factorial_ = 6;
-  top_nodes_ = new (Maubach_element3 *)[dim_factorial_];
+  top_nodes_ = new Maubach_element3 *[dim_factorial_];
   
   int plexes[][4]  ={
     {0,1,4,7},
