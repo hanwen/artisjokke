@@ -1,0 +1,236 @@
+
+
+/*
+  Calculate
+
+  {x_0, .. x_3 }
+
+  from
+  
+  [ABC] =   [x_0 | x_1 | x_2]
+    
+  and
+  
+  sum_j x_j = 0
+
+
+  COST:
+
+  18 flops.
+
+  (setq matrix2_to_big_vector 18)
+*/
+void
+ELEMENT_STATE::matrix_to_big_vector (Real * dest_vec, MATRIX const & src_mat) const
+{
+  Real *d3 = dest_vec +incident_nodes_[DIM ]* DIM;  
+  for (int i = DIM ; i--; )
+    {
+      Real *di = dest_vec + incident_nodes_[i]*DIM;
+      for (int j = DIM ; j--; )
+	{
+	  Real r = src_mat(j,i) ;
+	  di[j] += r;
+	  d3[j] -= r; 
+	}
+    }
+}
+
+/*
+  Calculate
+  
+    [x_0 - x_3 | x_1 - x_3 | x_2 - x_3]
+
+  from
+
+    { x_0, .. , x_3 }
+
+
+  (setq vector_to_matrix 9)
+  
+    cost: 9 flops.
+ */
+void
+ELEMENT_STATE::big_vector_to_matrix (MATRIX * dest_mat, Real const*src_vec) const
+{
+  Real const *d3 = src_vec + incident_nodes_[DIM]*  DIM;
+  for (int i=DIM; i--;)
+    {
+      Real const *di = src_vec + incident_nodes_[i]*DIM;
+      for (int j=DIM; j--;)
+	(*dest_mat) (j,i) =  di[j] -  d3[j];
+    }
+}
+
+ELEMENT_STATE::ELEMENT_STATE()
+{
+  for (int i=0;  i < DIM + 1; i++)
+    incident_nodes_[i] = -1;
+  volume_ =0.0;
+
+  degenerate_b_ = false;
+}
+
+void
+ELEMENT_STATE::precompute (Element* tet,Deformation_state const* def)
+{
+  MATRIX locmat;
+  for (int i=0;  i < DIM + 1; i++)
+    incident_nodes_[i] = tet->node (i)->number ();
+
+  for (int i=0; i < DIM; i++)
+    {
+      for (int j=0; j < DIM; j++)
+	{
+	  locmat(j,i) = REFERENCE_LOCATION (tet->node (i), def) (j)-
+	    REFERENCE_LOCATION (tet->node (DIM), def)(j);
+	}
+    }
+
+
+  Real mine, maxe;
+  MINMAX_EDGE_LENGTH (&mine, &maxe, tet->simplex (),
+		      REFERENCE_LOCATION, def);
+  this->minimum_edge_length_ = mine;
+  
+  Real determinant =  locmat.determinant ();
+
+  Real dim_factorial = 2;
+  if (tet->simplex().count() == 4)
+    dim_factorial = 6;
+  
+  Real v =  determinant / dim_factorial;
+  if (isnan (v) || isinf (v) || v == 0.0)
+    {
+      printf ("infinite or NaN volume. Sorry, try ignore-degenerate-elements=yes.\n");
+
+      abort();
+    }
+
+  
+  volume_ = fabs (v);
+
+  MATRIX::invert_to (inverse_location_, locmat);
+
+  /*
+    multiply by volume, since we calc energy density
+    
+
+    volume * X^{-T} 
+    = 1/6 * sgn (det) * det * (1/det * cof(X))^T
+    = (sgn (det) / 6 * cof (X))^T
+
+
+    in 2D, the 6 becomes a three
+   */
+#if 0
+  /*
+    3d.
+   */
+  
+  MATRIX::cofactor_matrix (invloc_transpose_,  locmat);
+  MATRIX::scale  (invloc_transpose_, sign (determinant) / dim_factorial,
+		   invloc_transpose_);
+  MATRIX::transpose_to (invloc_transpose_, invloc_transpose_);
+#else
+  MATRIX::invert_to (invloc_transpose_, locmat);
+  MATRIX::scale (invloc_transpose_, volume_ , invloc_transpose_);
+  MATRIX::transpose_to (invloc_transpose_, invloc_transpose_);
+#endif
+}
+
+int
+ELEMENT_STATE::elastic_force (Elasticity_functions const * ef,
+			      Real * force_vec,
+			      Real const* displacement_vec)const
+{
+  MATRIX displacement_mat,force_mat;
+  
+  big_vector_to_matrix (&displacement_mat, displacement_vec);
+
+  
+  int flops = (*((ELASTICITY_FUNCS*) ef)->force_function_) (this, &force_mat, displacement_mat);
+
+  matrix_to_big_vector (force_vec, force_mat);
+
+  
+  return flops + 27;
+}
+
+
+
+int
+ELEMENT_STATE::elastic_force_derivative (Elasticity_functions const * ef,
+				     Real * deriv_vec,
+				     Real * force_vec,
+				     Real const* displacement_vec,
+				     Real const* dirvec)const
+{
+  MATRIX dir_mat;
+  MATRIX displacement_mat;
+  
+  big_vector_to_matrix (&displacement_mat, displacement_vec);
+  big_vector_to_matrix (&dir_mat, dirvec);
+
+  MATRIX force, dforce;
+  int flop_count = (* ((ELASTICITY_FUNCS*) ef)->dforce_function_) (this, &dforce, &force,
+			 displacement_mat, dir_mat);
+  
+  if (force_vec)
+    {
+      matrix_to_big_vector (force_vec, force);
+      flop_count += 18;
+    }
+  
+  matrix_to_big_vector (deriv_vec, dforce);
+  return flop_count + 36;
+}
+
+
+Real
+ELEMENT_STATE::linear_elastic_energy (Real const* disp_vec) const
+{
+  MATRIX E;
+  MATRIX F;
+  MATRIX displacement_mat;
+  
+  big_vector_to_matrix (&displacement_mat, disp_vec);
+  MATRIX::multiply_mm (F, displacement_mat, inverse_location_);
+
+  MATRIX::symmetrify (E, F);
+  //E.print();
+  return volume_ * (0.5  * lame_lambda* sqr (E.trace ())
+		    + lame_mu * MATRIX::inner_product (E, E));
+}
+
+
+Real
+ELEMENT_STATE::elastic_energy (Elasticity_functions const*  ef,
+			       Real const* disp_vec) const
+{
+  
+  if (ef->linear_)
+    {
+      Real e = linear_elastic_energy (disp_vec); 
+      return e;
+    }
+  
+  MATRIX displacement_mat;
+  big_vector_to_matrix (&displacement_mat, disp_vec);
+   
+  MATRIX C;
+  MATRIX F;
+  
+  MATRIX::multiply_mm (F, displacement_mat, inverse_location_);
+  F.add_diag (1.0);
+
+  MATRIX::square (C, F);
+  Real J = F.determinant ();
+  Real I3 = sqr(J);
+  Real I1 = C.trace ();
+  MATRIX Csq;
+  MATRIX::square (Csq, C);
+  Real I2 = 0.5 * (sqr (I1) - Csq.trace ());
+
+  return ((ELASTICITY_FUNCS*) ef)->energy_function_ (I1, I2, I3) * volume_;
+}

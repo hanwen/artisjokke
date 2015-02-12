@@ -1,0 +1,69 @@
+# -*-Makefile-*-
+
+MISSING_OPTIONAL = @OPTIONAL@
+MISSING_REQUIRED = @REQUIRED@
+
+# @configure_input@
+
+package-depth = @package_depth@
+
+USER_CFLAGS = @CFLAGS@ @CPPFLAGS@ 
+USER_CXXFLAGS = @CXXFLAGS@ @CPPFLAGS@
+USER_LDFLAGS = @LDFLAGS@ 
+EXTRA_LIBES = @EXTRA_LIBES@ @LIBS@
+
+PACKAGE = @PACKAGE@
+package = @package@
+PACKAGE_NAME = @PACKAGE_NAME@
+
+prefix = $(DESTDIR)@prefix@
+exec_prefix = @exec_prefix@
+
+builddir = @ugh_ugh_autoconf250_builddir@
+build_lilypond_datadir = @build_package_datadir@
+build_lilypond_libdir = @build_package_libdir@
+bindir = @bindir@
+datadir = @datadir@
+includedir = @includedir@
+infodir = @infodir@
+libdir = @libdir@
+lilypond_datadir = @package_datadir@
+localedir = @localedir@
+mandir = @mandir@
+program_prefix = @program_prefix@
+program_suffix = @program_suffix@
+sharedstatedir = @sharedstatedir@
+srcdir = @srcdir@
+stepmake = @stepmake@
+
+CC = @CC@
+GCC = @GCC@
+CROSS = @cross_compiling@
+CXX = @CXX@
+GXX = @GXX@
+LD = @LD@
+CONFIGSUFFIX = @CONFIGSUFFIX@
+ICFLAGS = @ICFLAGS@
+ILDFLAGS = @ILDFLAGS@
+TFM_PATH = @TFM_PATH@
+RANLIB = @RANLIB@
+DEFS = @DEFS@
+DEFINES = @DEFS@ @DEFINES@
+DOTEXE = @DOTEXE@
+INSTALL = @INSTALL@
+BASH = @BASH@
+BIBTEX2HTML=@BIBTEX2HTML@
+BIBTEX2HTML_FLAGS=@BIBTEX2HTML_FLAGS@
+BISON = @BISON@
+FIND = @FIND@
+FLEX = @FLEX@
+GROFF = @GROFF@
+LN = @LN@
+LN_S = @LN_S@
+ROOTSEP = @ROOTSEP@
+PATHSEP = @PATHSEP@
+PERL = @PERL@
+PYTHON = @PYTHON@
+SHELL = @SHELL@
+TAR = @TAR@
+ZIP = @ZIP@

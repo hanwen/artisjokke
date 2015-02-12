@@ -1,0 +1,112 @@
+
+
+/*
+  Compute elastic reactions using
+
+    Sigma = lambda  tr(E) + 2 mu E
+    E = 1/2 ((Grad U )^T+ Grad U)
+
+  This is linear material combined with linear geometry.
+*/
+
+
+static void linear_calc_strain (Element_state const*, MATRIX * strain, MATRIX const & disp);
+
+/*
+  Compute STRESS from STRAIN. STRESS and STRAIN may be aliased to each
+  other.
+
+  (setq linear_constitutive_equation (+ MATRIX::trace MATRIX::scale MATRIX::add_diag))
+  
+  COST: 15 flops
+*/
+static void
+linear_constitutive_equation (MATRIX *stress, MATRIX const &strain)
+{
+  Real tr = strain.trace();
+
+  if (stress != &strain)
+    *stress = strain;
+  
+  (*stress) *= 2*lame_mu;
+
+  stress->add_diag ( lame_lambda * tr);
+}
+
+Real
+elastic_energy (Real,Real,Real)
+{
+  /*
+    This does not apply, since linear elastic energy is not a function
+    of the invariants.
+  */
+  
+  assert (false);
+  return 0.0;
+}
+
+/*
+  Put the elastic force of tetrahedron ME in GRAD_VEC, using the
+  displacement in DISPLACEMENT_VEC.
+  
+  compute minus elastic force for one tetrahedron, from a
+  displacement.
+
+  COST:
+
+  (+ linear_calc_strain linear_constitutive_equation MATRIX::multiply_mm
+  MATRIX::negate)
+
+  (+ 60 15 54 0)
+
+  129 flops.
+  
+ */
+int
+elastic_force (Element_state const*inme,
+		      MATRIX * forces,
+		      MATRIX const& displacement_mat)
+{ ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+
+  MATRIX strain;
+  MATRIX &stress (strain);
+  
+  linear_calc_strain (me, &strain, displacement_mat); 
+  linear_constitutive_equation (&stress, strain);
+
+  MATRIX::multiply_mm (*forces, stress, me->invloc_transpose_); // 54
+
+  MATRIX::negate (*forces, *forces); // 9
+
+  return 129;
+}
+
+
+
+/*
+  COST:
+
+  (setq linear_calc_strain (+  MATRIX::multiply_mm MATRIX::symmetrify))
+  
+60  flops
+ */
+static void
+linear_calc_strain (Element_state const *inme,
+		    MATRIX *strain_dest,
+		    MATRIX  const&displacement_mat) 
+{
+ ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+  
+  MATRIX::multiply_mm (*strain_dest, displacement_mat, me->inverse_location_);
+  MATRIX::symmetrify (*strain_dest,*strain_dest); 
+}
+
+int
+elastic_force_derivative (Element_state const*,
+			  MATRIX *,
+			  MATRIX *,
+			  MATRIX const &,
+			  MATRIX const &)
+{
+  assert (false);
+}

@@ -1,0 +1,223 @@
+#include <math.h>
+#include "element-state.hh"
+#include "matrix.hh"
+#include "mechanics.hh"
+
+/*
+  Compute elastic reactions using
+
+    W(I,J) = (mu/2) (Inv1 - 3 - 2 ln (J)) + lamda /2 (J - 1)^2
+
+  This is a compressible Neo-Hookean model.
+    
+    Inv1 = tr (C)
+    J = det (F) = sqrt (det (C))
+
+    F = Grad (x) = (I + UX^-1)
+    C = F^T F
+
+  This is linear material combined with nonlinear geometry. Note that
+  W -> infty for J -> 0 (ln J -> -infty if J -> 0) or C -> infty in
+  any component.
+  
+
+  We get:
+
+  D_J(W) = (- mu/(2J) +  lamda  (J-1))
+  D_C(J) = 1/2 J C^{-1}
+  D_Inv1(W) = mu/2
+  D_C(Inv1) = Id
+
+  D_U(C) = Symmetrify ((Id +UX^-1)^T [.] X^-T)
+
+  Hence we have
+
+  D_U(W) = (mu/2 Id. + (-mu/2 + lamda (J-1)J/2) C^-1) D_U(C)
+
+  
+  To apply the derivative of C, we get
+
+  Q : D_U(C) = A : ( F^T (.)X^-1 + ((.) X^-1)^T F)
+
+  Since Q:B = tr(Q^T B), we may transform this to
+
+  tr [(FQX^-T)^T (.)] + tr [(FQ^TX^-T)^T (.)]
+
+  For symmetric Q -- which is the case here, we may write
+
+  tr [ (2 FQX^-T)^T (.) ]
+
+  hence the derivative is
+
+    F * S * X^{-T},
+
+  with
+
+    S = (mu I + (-mu + lamda (J-1)J ) C^-1)
+
+  To obtain the derivative of the force (evaluated in H), we set
+
+  DF = H X^{-1}
+  DC = 2 Symmetrify (F^T DF) 
+  D(C^-1) = - C^-1 DC C^-1
+  DS = [  -(lamda (J-1)J -mu ) C^-1 DC  + lamda (2J - 1) J/2 (C^-1 : DC) Id. ] C^-1
+
+  
+  Dforce = (DF * S  + F * DSi ) * X^-T
+*/
+    
+Real
+elastic_energy (Real I1, Real I2, Real I3)
+{
+  return lame_mu *0.5 * (I1 - DIM - log (I3))
+    + lame_lambda * 0.5 * sqr(sqrt(I3) - 1);
+}
+    
+/*
+  (setq Tetrahedron_state::neo_hookean_elastic_force
+
+(+
+  MATRIX::multiply_mm
+  MATRIX::add_diag
+
+  MATRIX::square
+  MATRIX::determinant
+  1
+  
+  MATRIX::invert_to_with_det
+  MATRIX::scale
+
+  MATRIX::diag
+  MATRIX::add
+
+  MATRIX::multiply_mm
+MATRIX::multiply_mm  
+  MATRIX::scale)
+  )
+
+  
+ */
+
+int
+elastic_force (Element_state const*inme,
+			   MATRIX * force,
+			   MATRIX const& displacement_mat)
+{
+  ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+  
+  MATRIX C;
+  MATRIX C_inv;
+  MATRIX F;
+  
+  MATRIX::multiply_mm (F, displacement_mat, me->inverse_location_);
+  F.add_diag (1.0);
+
+  MATRIX::square (C, F);
+  Real J = F.determinant ();
+  Real detC = sqr (J);
+  
+  MATRIX::invert_to_with_det (C_inv, C, detC);
+  MATRIX::scale (C_inv, (- lame_mu  + lame_lambda *(J-1)*J), C_inv);
+
+  force->diag (lame_mu);
+  MATRIX::add (*force, *force, C_inv);
+
+  *force =  F * (*force) * me->invloc_transpose_;
+  MATRIX::scale (*force, -2.0 , *force);
+  
+  return 277;
+}
+
+/*
+  (setq Element_state::neo_hookean_elastic_force_derivative
+(+  MATRIX::multiply_mm
+  MATRIX::add_diag
+
+  MATRIX::square
+  MATRIX::determinant
+  1
+  
+  MATRIX::invert_to_with_det
+  MATRIX::diag
+  MATRIX::axpy
+
+  MATRIX::multiply_mm
+  MATRIX::multiply_mtm
+
+  MATRIX::double_symmetrify
+
+  MATRIX::multiply_mtm
+  MATRIX::scale
+  3
+  MATRIX::inner_product
+  MATRIX::add_diag 
+  MATRIX::multiply_mtm
+  MATRIX::add
+  MATRIX::multiply_mm
+  MATRIX::multiply_mm
+  MATRIX::multiply_mm
+  MATRIX::scale))
+
+  595 flops.
+ */
+int
+elastic_force_derivative (Element_state const*inme,
+				      MATRIX *dforce,
+				      MATRIX *force,
+				      MATRIX const &displacement_mat,
+				      MATRIX const &dir_mat)
+{
+  ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+  
+  MATRIX C;
+  MATRIX C_inv;
+  MATRIX F;
+  
+ 
+  MATRIX::multiply_mm (F, displacement_mat, me->inverse_location_);
+  F.add_diag (1.0);
+
+  MATRIX::square (C, F);
+  Real J = F.determinant ();
+  Real detC = sqr( J);
+  
+  MATRIX::invert_to_with_det (C_inv, C, detC);
+
+  MATRIX A;
+  A.diag (lame_mu);
+  
+  MATRIX::axpy (A,  (- lame_mu  + lame_lambda *(J-1)*J), C_inv, A);
+
+  MATRIX DF;
+  MATRIX::multiply_mm (DF, dir_mat, me->inverse_location_);
+
+  MATRIX DC;
+  MATRIX::multiply_mtm (DC, F, DF);
+
+  MATRIX::double_symmetrify (DC, DC);	
+
+  MATRIX DA = C_inv *DC;
+  MATRIX::scale (DA, - (- lame_mu  + lame_lambda *(J-1)*J), DA);
+
+  DA.add_diag (lame_lambda * (J/2) * (2*J-1) * MATRIX::inner_product (C_inv, DC));
+
+  DA = DA * C_inv;
+  
+  *dforce = (DF * A + F * DA) * me->invloc_transpose_;
+  MATRIX::scale (*dforce, -2.0 , *dforce);
+
+
+  int flops = 595;
+  if (force)
+    {
+      *force = F * A * me->invloc_transpose_;
+      MATRIX::scale (*force, -2.0, *force);
+
+      /*
+	(+ MATRIX::scale MATRIX::multiply_mtm  MATRIX::multiply_mtm )
+       */
+      flops += 108;
+    }
+  
+  return flops;
+}

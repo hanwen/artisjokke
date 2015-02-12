@@ -1,0 +1,352 @@
+
+
+void
+MATRIX::fill (Real r)
+{
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < DIM; j++)
+      elts_[i][j] =r;
+}
+
+
+/*
+  COST:
+
+  (setq MATRIX::multiply_mm 54)
+
+*/
+void
+MATRIX::multiply_mm (MATRIX &dest, MATRIX const&m1, MATRIX const&m2)
+{
+  assert (&dest != &m1 && &dest != &m2);
+  int i,j,k;
+
+  for ( i= DIM; i --; )
+    for ( j= DIM; j --;) 
+      {
+	Real e =0.0;
+
+	for ( k=DIM; k--;)
+	  e += m1.elts_[i][k] * m2.elts_[k][j];
+
+	dest.elts_[i][j]  = e;
+      }
+}
+
+/*
+  calculate M1^T M2
+  
+  COST:
+
+  (setq MATRIX::multiply_mtm 54)
+
+*/
+void
+MATRIX::multiply_mtm (MATRIX &dest, MATRIX const&m1, MATRIX const&m2)
+{
+  assert (&dest != &m1 && &dest != &m2);
+  int i,j,k;
+
+  for ( i= DIM; i --; )
+    for ( j= DIM; j --;) 
+      {
+	Real e =0.0;
+
+	for ( k=DIM; k--;)
+	  e += m1.elts_[k][i] * m2.elts_[k][j];
+
+	dest.elts_[i][j]  = e;
+      }
+}
+
+
+/*
+  PRE: rhs != dest
+     
+  cost:  18 flops.
+
+  (setq MATRIX::multiply_mv 18)
+ */
+void
+MATRIX::multiply_mv  (VECTOR &dest, MATRIX const &m, VECTOR const &rhs)
+{
+  assert (&rhs != &dest);
+  
+  for (int i=0; i < DIM; i++)
+    {
+      Real e=0.0;
+      for (int j=0; j < DIM; j++)
+	e += m(i,j) *  rhs(j);
+      dest (i) = e;
+    }
+}
+
+
+
+/*
+  PRE: rhs != dest
+     
+  cost:  18 flops.
+
+  (setq MATRIX::multiply_vm 18)
+
+  like multiply_mv, but with M transposed.
+  
+ */
+void
+MATRIX::multiply_vm  (VECTOR &dest,  VECTOR const &lhs, MATRIX const &m)
+{
+  assert (&lhs != &dest);
+  
+  for (int i=0; i < DIM; i++)
+    {
+      Real e=0.0;
+      for (int j=0; j < DIM; j++)
+	e += m(j,i) * lhs(j);
+      dest (i) = e;
+    }
+}
+
+/*
+  (setq MATRIX::diag 0)
+ */
+void
+MATRIX::diag (Real r)
+{
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < DIM; j++)
+      if (i == j)
+	elts_[i][j] = r;
+      else
+	elts_[i][j] = 0.0;
+}
+
+
+
+/*
+  cost: 9 flops
+
+  (setq MATRIX::add 9)
+ */
+void
+MATRIX::add (MATRIX & dest, MATRIX const &p, MATRIX const&q)
+{
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < DIM; j++)
+      dest.elts_[i][j] = p.elts_[i][j] + q.elts_[i][j];
+}
+
+
+
+/*
+  cost: 9 flops
+
+  (setq MATRIX::max_norm 9)
+ */
+Real
+MATRIX::max_norm () const
+{
+  Real maxentry = 0.0;
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < DIM; j++)
+      {
+	Real e = my_fabs( elts_[i][j]);
+	if (maxentry < e)
+	  maxentry = e;
+      }
+  return maxentry;
+}
+
+
+void
+MATRIX::print ()const
+{
+  for (int i=0; i < DIM; i++)
+    {
+      for (int j=0; j < DIM; j++)
+	printf ("%5.2f ", elts_[i][j]);	// %lf ? 
+      printf ("\n");
+    }
+}
+
+
+/*
+  COST: 9 flops, but no mult/add: 0
+  
+  (setq MATRIX::negate 0)
+ */
+void
+MATRIX::negate( MATRIX &dest, MATRIX const&src)
+{
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < DIM; j++)
+      dest.elts_[i][j] = - src.elts_[i][j] ;
+}
+
+
+/*
+  COST:  6 flops
+
+  (setq MATRIX::symmetrify 6)
+ */
+void
+MATRIX::symmetrify (MATRIX &dest, MATRIX const&src)
+{
+  /*
+    hopefully this is fast (i.e. memcpy).
+   */
+  dest = src;
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < i; j++)
+      {
+	Real ent = (src(i,j)  + src(j,i))*0.5;
+	dest (i,j) = ent;
+	dest (j,i) = ent;
+      }
+}
+
+/*
+  COST:  6 flops
+
+  (setq MATRIX::double_symmetrify 6)
+ */
+void
+MATRIX::double_symmetrify (MATRIX &dest, MATRIX const&src)
+{
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j <= i; j++)
+      {
+	Real ent = (src(i,j)  + src(j,i));
+	dest(i,j) = ent;
+	dest(j,i) = ent;
+      }
+}
+
+
+
+
+
+/*
+  (setq MATRIX::hilbert_schmidt_norm (* 9 2))
+
+
+  (Frobenius norm??)
+ */
+   
+Real
+MATRIX::hilbert_schmidt_norm () const
+{
+  Real s =0.0;
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < DIM; j++)
+      s += sqr (elts_[i][j]);
+
+  return sqrt (s);
+}
+
+
+/*
+  (setq MATRIX::max_row_sum 9)
+ */
+Real
+MATRIX::max_row_sum () const
+{
+  Real max = 0.0;
+  for (int i=0; i < DIM; i++)
+    {
+      Real s = 0.0;
+      for (int j=0; j < DIM; j++)
+	s += fabs (elts_[i][j]);
+
+      max = max >? s;
+    }
+  return max;
+}
+
+/*
+  (setq MATRIX::max_col_sum 9)
+*/
+Real
+MATRIX::max_col_sum () const
+{
+  Real max = 0.0;
+  for (int i=0; i < DIM; i++)
+    {
+      Real s = 0.0;
+      for (int j=0; j < DIM; j++)
+	s += fabs (elts_[j][i]);
+
+      max = max >? s;
+    }
+  return max;
+}
+
+
+/*
+  (setq MATRIX::square (* 6 3 2))
+
+  COST 36
+
+  Compute src^T * src
+ */
+void
+MATRIX::square (MATRIX & dest, MATRIX const &src)
+{
+  assert (&dest != &src);
+  int i,j,k;
+
+  for ( i= DIM; i --; )
+    for ( j= 0 ; j <= i;j++) 
+      {
+	Real e =0.0;
+
+	for ( k=DIM; k--;)
+	  e += src.elts_[k][i] * src.elts_[k][j];
+
+	dest.elts_[i][j]  = e;
+	dest.elts_[j][i]  = e;	
+      }
+
+#ifdef PARANOIA
+  MATRIX d2, t;
+  MATRIX::transpose_to (t, src);
+  MATRIX::multiply_mm (d2, t, src);
+  MATRIX::subtract (d2,dest, d2);
+  assert (d2.hilbert_schmidt_norm () < 1e-6 * dest.hilbert_schmidt_norm ());
+#endif  
+}
+
+/*
+  (setq MATRIX::inner_product 18)
+ */
+Real
+MATRIX::inner_product (MATRIX const &m1, MATRIX const &m2)
+{
+  Real ip = 0.0;
+  for ( int i= DIM; i --; )
+    for ( int j= DIM ; j--;)
+      ip += m1.elts_[i][j] * m2.elts_ [i][j];
+
+  return ip;
+}
+
+/*
+  (setq MATRIX::axpy 18)
+ */
+void
+MATRIX::axpy (MATRIX &d, Real a , MATRIX const &x, MATRIX const&y)
+{
+  for (int i= DIM; i --; )
+    for (int j= DIM; j--; )
+      d.elts_[i][j] = a * x.elts_[i][j] + y.elts_ [i][j];
+}
+
+bool
+MATRIX::kosher () const
+{
+  bool k = true;
+  for (int i= DIM; i --; )
+    for (int j= DIM; j--; )
+       k = k && !isnan(elts_[i][j]) && !isinf(elts_[i][j]);
+  return k;
+}

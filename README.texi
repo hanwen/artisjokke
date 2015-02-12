@@ -1,0 +1,275 @@
+\input texinfo @c -*-texinfo-*-
+@setfilename README.info
+@settitle Artisjokke -  simulation of 2D and 3D needle insertion
+@node Top, , , 
+@top
+
+@chapter  Artisjokke -  simulation of 2D and 3D needle insertion
+
+@section Introduction
+
+Artisjokke is a interactive Finite Element simulation that models the
+deformation and friction forces as a needle inserted into a objects of
+elastic material. This material may be 2D (for fast interaction) and
+3D for more accurate computations. 
+
+The name Artisjokke continues my @uref{http://lilypond.org/,tradition}
+of choosing nonsensical names for programs. In the unlikely event that
+you've downloaded this somewhere else: the URL for the tarball is
+@uref{http://www.cs.uu.nl/~hanwen/research/artisjokke/artisjokke-#ARTVERSION#.tar.gz}.
+
+@ifhtml
+Here is the obligatory screenshot:
+@example
+@image{artisj,,,,}
+@end example
+@end ifhtml
+
+@section Requirements
+
+This program requires
+
+@itemize @bullet
+@item GNU C++ (3.x tested)
+@item GNU Make
+@item OpenGL/Mesa and GLUT 
+@end itemize
+It has been developed and tested on RedHat 9.0.
+
+Compiling is done with the standard
+@example
+  configure ; make 
+@end example
+sequence
+
+@section Invocation
+
+After compiling, the binaries are left in
+@example
+  needle2d/out/needle
+  needle3d/out/needle  
+@end example
+Command line options for both programs are equal:
+
+@table @samp
+@item  -o@var{key}=@var{value}
+this sets an internal variable. Try @code{-ohelp} to see a list of
+options. See below for some inspiration.
+@item  -s@var{scenario}
+run a particular test scenario. Try @code{-shelp} to see a list of options.
+@item -d
+Print debugging information.
+@item -h
+Print option help.
+@end table
+
+Usage: mouse: 
+
+@itemize
+@item 
+Left button translates view, Middle button rotates view, Right button
+zooms view.
+@item
+When control is held, then the mouse buttons control
+lighting
+@item
+When shift is held, the scalpel is moved. Buttons select between
+translate (left button), rotate (middle button), and extend (right
+button).
+@end itemize
+
+
+Keys:
+
+@table @samp
+@item a
+show axes
+@item ESC
+exit program
+@item o
+show undeformed configuration
+@item s
+toggle showing solid triangles.
+@item b
+toggle showing boundary
+@item =
+print statistics
+@item CTRL-L
+reset viewpoint to default
+@item e
+toggle showing of edges
+@item d
+toggle depth cue
+@item l
+toggle lighting
+@item w
+write deformation state to file
+@item n
+toggle showing nodes
+@item ?
+show @code{-okey=val} variable settings
+@item p
+(2d version only),
+print mesh as Postscript.
+@item !
+(3d version only) compute edge lengths
+@item N
+(3d version only) show needle surface
+@item A
+(3d version only) run auto-insert.
+@end table
+
+The 2D version is more suitable for toying around, due to its better
+response times. Example:
+
+@itemize @bullet
+@item compile the program as indicated above.
+@item run @code{needle2d/out/needle}
+@item press shift + left button, and drag the mouse to the right. The
+  needle will pierce
+ the material.
+@item press 'e' to see the edges, press 'p' to get a PostScript dump
+of the object.
+@end itemize
+
+The computational experiments (described in Chapter 6 of my thesis),
+can be run as follows.  First, create the ``bare'' build: The bare
+build is created using
+@example
+  configure --enable-optimising --disable-opengl --enable-config=bare
+  make conf=bare
+@end example
+Second, get the @uref{http://www.R-project.org, R} program for
+statistical analysis, and run the The R source file
+@file{plot-h-error.r}. This is done by executing the following
+commands in R:
+@example
+  source ('plot-h-error.r')
+  everything (7)
+@end example
+This will leave a large number of data-files and EPS graphics in the
+subdirectory @file{experiments}.
+
+
+For the 3D version, here are the scenarios shown in the MICCAI 2003
+paper. Warning: the bottom one takes a long time to compute.
+
+@example
+./needle3d/out-glutspeed/needle  -oauto-insert-speed=0.1 \
+   -oauto-insert-depth=0.12 -oouter-loop-tolerance=0.1 \
+   -orefinement-level=12 -oinitial-level=6 -oauto-insert-y=0.07001 \
+   -oelasticity=linear -oneedle-radius=0.001 -ocalibration-time=-1.0 \
+   -ofriction-density=70 -oyoung=34e3 -Sauto-insert
+
+
+./needle3d/out-glutspeed/needle  -oauto-insert-speed=0.1 \
+  -oauto-insert-depth=0.12 -oouter-loop-tolerance=0.05 \
+  -orefinement-level=20 -oinitial-level=6 -oauto-insert-y=0.07001 \
+  -oelasticity=neohooke -oneedle-radius=0.001 -ocalibration-time=-1.0 \
+   -ofriction-density=70 -oyoung=34e3 -Sauto-insert
+@end example
+
+
+   @section Design
+
+The design of the simulation is modular: it consists of
+two executables that use the following three
+libraries:
+
+@table @strong
+@item meshlib
+  is the library that maintains the  mesh connectivity. It is
+  described in Chapter 7 of my thesis, and also in the JGT article
+  mentioned below.
+@item defolib
+  is the library that computes elastic deformations.  It can compute
+dynamic and static deformations for a number of compressible elastic
+models for tetrahedral and triangulated meshes. It is dimension
+independent in the sense that 2D and 3D versions of the code are
+generated from the same source code.
+
+It is based on a previous framework used in the Salmon and Bazzoen
+prototype.  It uses objects and types from @code{meshlib}, but could
+(conceivably) be separated into a standalone library.
+
+WARNING: defolib maintains flop-counts. This is a relic from earlier
+computational experiments, and they are likely to be erroneous,
+especially for the 2D simulation.
+
+@item visualize
+  is the library that handles visualization, the GLUT interface and
+mouse.
+@end table
+
+Basically, the two executables glue together these libraries, and
+includes code to deal with bisection meshing, friction computations
+and running computational experiments.
+
+
+
+@section License (1) 
+  
+The formal part of the license is below. Informally: I basically
+couldn't care less about what you do with this software. However, if
+you use it in any way to write articles in any form, I would greatly
+appreciate being cited.  Relevant citations are:
+
+
+@verbatim
+@InProceedings{nienhuys03:_miccai,
+  author = 	 {Han-Wen Nienhuys and A. Frank van der Stappen},
+
+  title = {Interactive needle insertions in 3D nonlinear material},
+  booktitle =	 {Medical Image Computing and Computer Assisted
+  Intervention 2003 (MICCAI2003)},
+  note = {Submitted for publication},
+  pages =	 {?},
+  series ={LNCS},
+  year =	 2003,
+  organization = {Springer Verlag}
+}
+
+@Article{nienhuys03:_jgt,
+  author = 	 {Han-Wen Nienhuys and A. Frank van der Stappen},
+  title = {Maintaining mesh connectivity using a simplex-based data structure},
+  journal  ={Journal of Graphics Tools},
+  note = {Submitted for publication},
+  organization = {ACM}
+}
+
+
+@PhdThesis{nienhuys03:_cuttin,
+  author = 	 {Han-Wen Nienhuys},
+  title = 	 {Cutting in deformable objects},
+  school = 	 {Utrecht University},
+  year = 	 2003
+}
+@end verbatim
+
+
+@section License (2)
+
+Copyright (c) 2002 Han-Wen Nienhuys and Utrecht University
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+@section
+

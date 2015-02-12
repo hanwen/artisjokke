@@ -1,0 +1,117 @@
+/*
+  (c) Han-Wen Nienhuys 1995,96,97,98
+*/
+
+
+#if 0
+#include "array.hh"
+#ifdef INLINE
+#undef INLINE
+#endif
+
+#define INLINE
+#endif
+
+/*
+ functions with loops don't inline
+ */
+
+template<class T> INLINE void 
+arrcpy (T*dest, T*src, int count)
+{
+  for (int i_shadows_local=0; i_shadows_local < count ; i_shadows_local++)
+    *dest++ = *src++;
+}
+
+template<class T> INLINE void
+Array<T>::insert (T k, int j) 
+{
+  assert (j >=0 && j<= size_);
+  set_size (size_+1);
+  for (int i=size_-1; i > j; i--)
+    array_p_[i] = array_p_[i-1];
+  array_p_[j] = k;
+}
+
+template<class T> INLINE int
+default_compare (T const &t1, T const &t2)
+{
+  if (t1 < t2)
+    return -1;
+  else if (t1 > t2)
+    return 1;
+  else
+    return 0;
+}
+
+template<class T> INLINE void
+Array<T>::sort (int (*compare)(T const&,T const&),
+	   int lower, int upper) 
+{
+  if (lower < 0) 
+    {
+      lower = 0 ;
+      upper = size () - 1;
+    }
+  if (lower >= upper)
+    return;
+  swap (lower, (lower+upper)/2);
+  int last = lower;
+  for (int i= lower +1; i <= upper; i++)
+    if (compare (array_p_[i], array_p_[lower]) < 0)
+      swap (++last,i);
+  swap (lower, last);
+  sort (compare, lower, last-1);
+  sort (compare, last+1, upper);
+}
+
+
+template<class T> INLINE void
+Array<T>::uniq (int (*compare)(T const&,T const&))
+{
+  for (int i=size()-1; i >0 ; i-- )
+    {
+      if (!compare(elem (i) , elem(i-1)))
+	del (i);
+    }
+}
+
+template<class T> INLINE void
+Array<T>::reverse () 
+{
+  int h = size_/2;
+  for (int i =0,j = size_-1; i < h; i++,j--)
+    swap (i,j);
+}
+
+template<class T> INLINE
+void
+Array<T>::OK() const
+{
+  assert (max_ >= size_ && size_ >=0);
+  if (max_) assert (array_p_);
+}
+
+template<class T> INLINE
+T *
+Array<T>::remove_array_p ()
+{
+  T * p = array_p_;
+  size_ = 0;
+  max_ = 0;
+  array_p_ =0;
+  return p;
+}
+
+template<class T> INLINE
+Array<T>
+Array<T>::slice (int lower, int upper)
+{
+  assert (lower >= 0 && lower <=upper&& upper <= size_);
+  Array<T> r;
+  int s =upper-lower;
+  r.set_size (s);
+  arrcpy (r.array_p_, array_p_  + lower, s);
+  return r;
+}
+

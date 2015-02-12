@@ -1,0 +1,164 @@
+/*
+  The same as picinbono-material.cc -- however, for small
+displacements, a formulation in terms of U and E is more numerically
+more precise.
+  
+ */
+
+/*
+  2 W(I1, I2) =
+
+  ( - mu - 3/2 lambda) I1 + (lambda/4 + mu/2) I1^2 - mu I2
+
+  2 DW = A : DC
+
+  where
+  
+     A = ( - mu - 3/2 lambda) I + lambda/2 I1 I + mu C 
+       = ( - mu - 3/2 lambda + lambda/2 I1 ) I + mu C 
+  so
+  
+    forces = - F A  X^-T
+
+  and
+
+    Dforces = - (DF A + F DA) X^-T
+  
+  where
+
+    DA = lambda/2 tr(DC) I + mu DC
+
+  if we take E = 1/2 (C -I), then we get 
+
+    S = 2 D_C(W) = lambda tr(E) + 2 mu E
+    
+  
+    
+ */
+
+Real
+elastic_energy (Real I1, Real I2, Real I3)
+{
+  // todo : gamma = 0.
+  return 0.5* (-lame_mu - lame_lambda * 1.5 * I1
+	       + (lame_lambda *0.25 + lame_mu * 0.5)*sqr (I1)
+	       - lame_mu * I2);
+}
+
+/*
+  (+ 
+  MATRIX::multiply_mm
+  MATRIX::add_diag
+  MATRIX::square
+  MATRIX::trace 
+  MATRIX::diag
+  4
+  MATRIX::axpy
+  (* 2 MATRIX::multiply_mm)
+  MATRIX::negate)
+
+  235
+ */
+int
+elastic_force (Element_state const*inme,
+			  MATRIX *force_mat,
+			  MATRIX const &disp_mat)
+{ ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+ 
+  MATRIX C;
+  MATRIX F;
+  
+  MATRIX::multiply_mm (F, disp_mat, me->inverse_location_);
+  F.add_diag (1.0);
+   
+  MATRIX::square (C, F);
+
+  Real I1 = C.trace ();
+  
+  MATRIX A;
+  A.diag (- lame_mu +  lame_lambda* (0.5 *(I1 - DIM)));
+  
+  MATRIX::axpy (A, lame_mu, C, A);
+  
+  *force_mat = F * A * me->invloc_transpose_;
+  MATRIX::scale (*force_mat , -1, *force_mat);
+  
+  return 235;
+}
+
+/*
+  (+ 
+  MATRIX::multiply_mm
+  MATRIX::add_diag
+  MATRIX::square
+  MATRIX::trace 
+  MATRIX::diag
+  4
+  MATRIX::axpy
+
+  MATRIX::multiply_mm 
+  MATRIX::multiply_mtm 
+  MATRIX::double_symmetrify 
+  MATRIX::diag
+  MATRIX::axpy
+
+  (* 3 MATRIX::multiply_mtm)
+  MATRIX::add
+  
+  )
+
+  return 421
+*/
+
+int
+elastic_force_derivative (Element_state const*inme,
+			     MATRIX *dforce,
+			     MATRIX *force,
+			     MATRIX const &disp_mat,
+			     MATRIX const & dir_mat)
+{ ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+ 
+  MATRIX C;
+  MATRIX F;
+  
+  MATRIX::multiply_mm (F, disp_mat, me->inverse_location_);
+  F.add_diag (1.0);
+   
+  MATRIX::square (C, F);
+
+  Real I1 = C.trace ();
+  
+  MATRIX A;
+  A.diag (- lame_mu + lame_lambda* (0.5 * (I1 - DIM)));
+  
+  MATRIX::axpy (A, lame_mu, C, A);
+
+  MATRIX DF;
+  MATRIX::multiply_mm (DF, dir_mat, me->inverse_location_);
+
+  MATRIX DC;
+  MATRIX::multiply_mtm (DC, F, DF);
+
+  MATRIX::double_symmetrify (DC, DC);	
+
+  MATRIX DA;
+
+  DA.diag(lame_lambda * 0.5 * DC.trace());
+  MATRIX::axpy (DA, lame_mu, DC, DA);
+
+  *dforce = (DF * A + F * DA) * me->invloc_transpose_;
+  MATRIX::negate (  *dforce, *dforce);
+  int flops = 427;
+  if (force)
+    {
+  
+      *force = F * A * me->invloc_transpose_;
+      MATRIX::scale (*force , -1, *force);
+
+      flops += 108;
+    }
+
+  return flops;  
+}
+  
+

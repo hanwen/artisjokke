@@ -1,0 +1,139 @@
+/*   
+  vector.icc -- declare Vector2
+  
+  (c) 1999 Han-Wen Nienhuys <hanwen@cs.uu.nl>
+  
+ */
+
+#ifndef VECTOR_INLINE
+#define VECTOR_INLINE inline
+#endif
+
+VECTOR_INLINE
+VECTOR::VECTOR ()
+{
+  setnull ();
+}
+
+VECTOR_INLINE
+void
+VECTOR::setnull()
+{
+  for (int i=0; i < DIM; i++)
+    elts_[i] = 0.0;
+#if 0  
+  memset (elts_, 0x0, sizeof (Real) * DIM);
+#endif
+}
+
+VECTOR_INLINE
+VECTOR::VECTOR (Real *rs)
+{
+  for (int i=0; i < DIM; i++)
+    elts_[i] =rs[i];
+}
+
+VECTOR_INLINE
+void
+VECTOR::fill (Real r)
+{
+  for (int i=0; i < DIM; i++)
+    elts_[i] =r;
+}
+
+VECTOR_INLINE
+void
+VECTOR::scalar_multiply (VECTOR &dest, Real s, VECTOR const& v)
+{
+  for (int i=0; i < DIM; i++)
+    dest(i) = s * v(i);
+  
+}
+
+VECTOR_INLINE
+void
+VECTOR::add (VECTOR &dest, VECTOR const &w, VECTOR const &v)
+{
+  for (int i=0; i < DIM; i++)
+    dest(i) = w(i) + v(i);
+}
+
+VECTOR_INLINE
+void
+VECTOR::sub (VECTOR &dest, VECTOR const &w, VECTOR const &v)
+{
+  for (int i=0; i < DIM; i++)
+    dest(i) = w(i) - v(i);
+}
+
+VECTOR_INLINE
+Real
+VECTOR::ip (VECTOR const &v, VECTOR const&w)
+{
+  Real r=0.0;
+  for (int i=0; i < DIM; i++)
+    r += v.elts_[i]* w.elts_[i];
+  return r;
+}
+
+VECTOR_INLINE
+Real
+operator * (VECTOR const & v1, VECTOR const &v2)
+{
+  return VECTOR::ip (v1,v2);
+}
+
+VECTOR_INLINE
+Real
+VECTOR::static_length_squared (VECTOR const&v)
+{
+  Real r=0.0;
+  for (int i=0; i < DIM; i++)
+    r += v(i)* v(i);
+  return r;
+}
+
+
+
+VECTOR_INLINE
+VECTOR
+operator + (VECTOR v1, VECTOR const &v2)
+{
+  v1 += v2;
+  return v1;
+}
+
+VECTOR_INLINE
+VECTOR
+operator - (VECTOR v1, VECTOR const &v2)
+{
+  v1 -= v2;
+  return v1;
+}
+
+VECTOR_INLINE
+VECTOR
+operator * (Real r, VECTOR v1)
+{
+  v1 *=r ;
+  return v1;
+}
+
+VECTOR_INLINE
+VECTOR
+operator * (VECTOR v1, Real r)
+{
+  v1 *=r ;
+  return v1;
+}
+
+
+
+VECTOR_INLINE
+VECTOR
+operator / (VECTOR v1, Real r)
+{
+  v1 *=1 / r ;
+  return v1;
+}
+

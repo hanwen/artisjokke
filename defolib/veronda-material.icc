@@ -1,0 +1,183 @@
+
+Real
+elastic_energy (Real I1, Real I2, Real I3)
+{
+  return 0.5*  (lame_mu/lame_gamma* (exp (lame_gamma*(I1 -3)) - 1) - lame_mu/2* (I2 - 3) +
+		lame_lambda * (I3 - log (I3)));
+}
+
+
+
+/*
+  (+
+  MATRIX::multiply_mm 
+  MATRIX::add_diag 
+  MATRIX::square 
+  MATRIX::determinant 
+  1
+  MATRIX::trace 
+
+  MATRIX::invert_to_with_det 
+  50
+  5
+  MATRIX::diag
+  MATRIX::axpy 
+  MATRIX::axpy 
+  3
+  MATRIX::multiply_mm   MATRIX::multiply_mm
+  MATRIX::negate )
+
+  347
+ */
+
+int
+elastic_force (Element_state const*inme,
+		       MATRIX *force_mat,
+		       MATRIX const &disp_mat)
+{
+  ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+  MATRIX C;
+  MATRIX C_inv;
+  MATRIX F;
+  
+  MATRIX::multiply_mm (F, disp_mat, me->inverse_location_);
+  F.add_diag (1.0);
+
+  MATRIX::square (C, F);
+  Real J = F.determinant ();
+  Real I3 = sqr(J);
+  Real I1 = C.trace ();
+
+  MATRIX::invert_to_with_det (C_inv, C, I3);
+ 
+  MATRIX A;
+  A.diag (lame_mu*  (exp (lame_gamma*(I1 - DIM)) - 0.5*I1));
+  MATRIX::axpy (A, lame_mu * 0.5, C, A);
+  MATRIX::axpy (A,  lame_lambda * (I3 -1), C_inv, A);
+  
+  *force_mat = F * A * me->invloc_transpose_;
+  MATRIX::negate (*force_mat, *force_mat);
+  
+  return 347;
+}
+
+
+/*
+ (+
+  MATRIX::multiply_mm 
+MATRIX::add_diag 
+
+  MATRIX::square 
+MATRIX::determinant 
+MATRIX::trace 
+
+  MATRIX::invert_to_with_det 
+ 
+
+  50
+  2
+  2
+  
+MATRIX::diag 
+  MATRIX::axpy 
+  1
+  2
+  MATRIX::axpy 
+  MATRIX::multiply_mm
+    MATRIX::multiply_mm 
+
+  MATRIX::multiply_mm 
+  MATRIX::multiply_mtm 
+
+  MATRIX::double_symmetrify 
+  4
+  
+MATRIX::diag
+MATRIX::trace 
+2
+  MATRIX::axpy 
+
+  MATRIX::multiply_mtm
+  MATRIX::scale
+  2
+MATRIX::add_diag 
+  MATRIX::multiply_mtm
+  MATRIX::scale 
+
+  MATRIX::add  
+  MATRIX::multiply_mtm   MATRIX::multiply_mtm   MATRIX::multiply_mtm
+  MATRIX::add
+  MATRIX::negate 
+
+)
+
+797
+*/
+int
+elastic_force_derivative (Element_state const*inme,
+				 MATRIX *dforce,
+				 MATRIX *force,
+				 MATRIX const &disp_mat,
+				 MATRIX const & dir_mat)
+{
+  ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+
+ 
+  MATRIX C;
+  MATRIX C_inv;
+  MATRIX F;
+  
+  MATRIX::multiply_mm (F, disp_mat, me->inverse_location_);
+  F.add_diag (1.0);
+
+  MATRIX::square (C, F);
+  Real J = F.determinant ();
+  Real I3 = sqr(J);
+  Real I1 = C.trace ();
+
+  MATRIX::invert_to_with_det (C_inv, C, I3);
+ 
+  MATRIX A;
+  Real exponential = exp (lame_gamma*(I1 - DIM));
+  A.diag (lame_mu* (exponential - I1/2));
+  MATRIX::axpy (A, lame_mu / 2.0, C, A);
+  MATRIX::axpy (A,  lame_lambda * (I3 -1), C_inv, A);
+  
+  *force = F * A * me->invloc_transpose_;
+
+  MATRIX DF;
+  MATRIX::multiply_mm (DF, dir_mat, me->inverse_location_);
+
+  MATRIX DC;
+  MATRIX::multiply_mtm (DC, F, DF);
+
+  MATRIX::double_symmetrify (DC, DC);	
+
+  MATRIX DA;
+
+  DA.diag( (exponential *  lame_gamma - 0.5) * lame_mu * DC.trace ());
+
+  MATRIX::axpy (DA, + lame_mu * 0.5 , DC, DA);
+
+  MATRIX D3 =  C_inv * DC ;
+  MATRIX::scale (D3, - (I3-1), D3);
+  D3.add_diag (I3 * MATRIX::inner_product (C_inv , DC));
+  D3 = D3 * C_inv;
+  MATRIX::scale (D3, lame_lambda, D3);
+
+  MATRIX::add (DA, DA, D3); 
+  
+  *dforce = (DF * A + F * DA) * me->invloc_transpose_;
+  MATRIX::negate (*dforce, *dforce);
+
+  int flops = 797;
+  if (force)
+    {
+      *force = F * A * me->invloc_transpose_;
+      MATRIX::negate (*force, *force);
+
+      flops  += 108;
+    }
+  
+  return flops;  
+}

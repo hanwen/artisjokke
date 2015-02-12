@@ -1,0 +1,57 @@
+# -*-Makefile-*-
+# title	   specific top level makefile for LilyPond  
+
+# subdir level:
+#
+depth = .
+#
+
+# descent order into subdirectories
+# 
+
+SUBDIRS = meshlib defolib visualize needle2d needle3d make $(builddir)/stepmake 
+
+EXTRA_DIST_FILES=config.make.in aclocal.m4 configure.in \
+  config.hh.in configure VERSION GNUmakefile.in autogen.sh \
+  exp-flops.cc ChangeLog plot-force.r plot-h-error.r README.texi artisj.png
+
+
+# bootstrap stepmake:
+#
+STEPMAKE_TEMPLATES=toplevel install 
+include $(depth)/make/stepmake.make 
+#
+
+
+all-binaries: all
+	$(foreach a,  glutspeed barespeed sosspeed sos, $(MAKE) conf=$(a) &&) true
+
+config-all-platform:
+	./configure --enable-opengl --enable-optimizing --enable-config=glutspeed
+	./configure --enable-opengl --disable-optimising --enable-config=glut
+	./configure --disable-opengl --disable-optimising --enable-config=bare
+	./configure --disable-opengl --enable-optimising --enable-config=barespeed
+	./configure --disable-opengl --enable-optimising --enable-profiling --enable-config=prof
+
+
+all-platform:
+	make conf=glutspeed
+	make conf=barespeed
+	make conf=glut
+	make conf=bare
+
+
+
+NAME=artisjokke
+WEBDIR=$(HOME)/pub-www/research/$(NAME)
+
+
+$(outdir)/README.html: README.texi
+	makeinfo -I $(outdir)/ --output=$@ --html --no-split --no-headers $<
+
+
+
+web-dist:  $(outdir)/README.html
+	cp $(outdir)/$(NAME)-$(VERSION).tar.gz $(WEBDIR)/
+	cp artisj.png $(WEBDIR)/
+	sed 's!#ARTVERSION#!$(VERSION)!g' < $(outdir)/README.html > $(WEBDIR)/index.html

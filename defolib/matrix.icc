@@ -1,0 +1,103 @@
+/*   
+  matrix.icc -- implement small matrix methods. 
+  
+  (c) 1999 Han-Wen Nienhuys <hanwen@cs.uu.nl>
+  
+ */
+#ifndef MATRIX_INLINE
+#define MATRIX_INLINE inline
+#endif
+
+
+/*
+  cost: 3 flops.
+
+  (setq MATRIX::trace 3)
+ */
+
+MATRIX_INLINE
+Real
+MATRIX::trace () const
+{
+  Real t=0.0;
+  for (int i=0; i < DIM; i++)
+    t += elts_[i][i];
+
+  return t;
+}
+
+
+/*
+  (setq MATRIX::scale 9)
+
+  COST: 9 flops.
+ */
+MATRIX_INLINE
+void
+MATRIX::scale (MATRIX &dest, Real r, MATRIX const&m2)
+{
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < DIM; j++)
+      dest.elts_[i][j] = r * m2.elts_[i][j];
+}
+
+/*
+  COST: 9 flops
+
+  (setq MATRIX::subtract 9)
+ */
+MATRIX_INLINE
+void
+MATRIX::subtract (MATRIX &dest, MATRIX const &m1, MATRIX const&m2)
+{
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < DIM; j++)
+      dest.elts_[i][j] = m1.elts_[i][j] - m2.elts_[i][j];
+}
+
+/*
+  COST: no flops.
+
+  (setq MATRIX::transpose_to 0)
+ */
+MATRIX_INLINE
+void
+MATRIX::transpose_to (MATRIX &dest, MATRIX const&m2)
+{
+  for (int i=0; i < DIM; i++)
+    {
+      for (int j=0; j < i; j++)
+	{
+	  Real t = m2(i,j);
+	  dest(i,j) = m2(j,i);
+	  dest(j,i) = t;
+	}
+      dest (i,i) = m2(i,i);
+    }
+}
+
+/*
+  COST: 9 flops
+
+  (setq MATRIX::scale_self 9)
+ */
+MATRIX_INLINE
+void
+MATRIX::operator *= (Real r)
+{
+  for (int i=0; i < DIM; i++)
+    for (int j=0; j < DIM; j++)
+      elts_[i][j] *= r;
+}
+
+/*
+  (setq MATRIX::add_diag 3)
+ */
+MATRIX_INLINE
+void
+MATRIX::add_diag (Real r)
+{
+  for (int i=0; i < DIM; i++)
+    elts_[i][i] += r;
+}
+

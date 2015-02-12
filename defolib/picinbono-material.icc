@@ -1,0 +1,268 @@
+
+
+Real
+elastic_energy (Real I1, Real I2, Real I3)
+{
+  // todo : gamma = 0.
+  return 0.5* (-lame_mu - lame_lambda * 1.5 * I1
+	       + (lame_lambda *0.25 + lame_mu * 0.5)*sqr (I1)
+	       - lame_mu * I2);
+}
+
+
+#define PARANOIA 0
+
+/*
+  Compute STRESS from STRAIN. STRESS and STRAIN may be aliased to each
+  other.
+
+  COST: 15 flops
+
+  (setq picinbono_constitutive_equation (+ MATRIX::trace MATRIX::scale MATRIX::add_diag))
+  
+*/
+static void
+picinbono_constitutive_equation (MATRIX *stress, MATRIX const &strain)
+{
+  Real tr = strain.trace();
+  if (stress != &strain)
+    *stress = strain;
+  
+  MATRIX::scale (*stress, 2*lame_mu, *stress);
+  stress->add_diag (lame_lambda *tr);
+}
+
+
+
+
+static void
+picinbono_calc_strain (Element_state const*me,
+		       MATRIX *strain_dest,
+		       MATRIX  const&displacement_mat);
+/*
+ Compute the 2nd derivative of the energy function, ie. the hessian of
+ the energy function.  In the linear case, this is a constant matrix,
+ in the nonlinear case, K depends on u.  Since we do not store
+ explicit matrices, we do not return the matrix itself, but the result
+ of multiplying K, evaluated in DISPLACEMENT, with SOUREC_VEC. The
+ result is stored in DEST_VEC.
+
+ COST
+
+ (+ picinbono_calc_strain picinbono_constitutive_equation
+   MATRIX::multiply_mm
+   MATRIX::multiply_mm
+   MATRIX::add_diag 
+   MATRIX::multiply_mtm
+   MATRIX::symmetrify
+   picinbono_constitutive_equation
+   MATRIX::add
+   MATRIX::multiply_mtm
+   MATRIX::multiply_mtm
+   MATRIX::multiply_mtm   
+   MATRIX::negate)
+
+
+   456
+*/
+int
+elastic_force_derivative (Element_state const *me,
+			    MATRIX *dforce,
+			    MATRIX *force,
+			    MATRIX const& displacement_mat,
+			    MATRIX const& source_mat)
+{
+  
+  MATRIX E;
+  picinbono_calc_strain (me, &E, displacement_mat); // 84
+
+  MATRIX T;
+  picinbono_constitutive_equation (&T, E); // 15
+  
+  MATRIX DF, F;
+  
+  MATRIX::multiply_mm (DF, source_mat, me->inverse_location_); // 54
+  /*
+    DF = (.) * X^{-1}
+   */
+
+  MATRIX::multiply_mm (F, displacement_mat, me->inverse_location_); // 54
+  F.add_diag (1.0);
+
+  MATRIX DE;
+  MATRIX::multiply_mtm (DE, F, DF); // 54
+  MATRIX::symmetrify (DE, DE); // 12
+
+  /*
+    D strain = 1/2 D(F^T F - I)
+             = symmetrify (F^T DF)
+   */
+  
+  MATRIX DT ;
+  picinbono_constitutive_equation (&DT, DE);
+  
+  MATRIX::add (*dforce, DF * T, F * DT);
+  *dforce = (*dforce) * me->invloc_transpose_; // 54
+
+  MATRIX::negate (*dforce , *dforce); // 9
+
+  int flops = 456;
+  if (force)
+    {
+      /*
+	(+  (* 2 MATRIX::multiply_mtm) MATRIX::negate)
+
+
+       */
+      *force =  F  * T * me->invloc_transpose_;
+      MATRIX::negate (*force, *force);
+      flops += 108;
+    }
+
+#if 1 // PARANOIA
+  MATRIX f2, df2;
+  picinbono2_force_derivative (me, &df2, &f2, displacement_mat, source_mat);
+
+  Real diff = (df2 - (*dforce)).hilbert_schmidt_norm ();
+  Real df2h = df2.hilbert_schmidt_norm ();
+  Real fdiff = (*force  - f2).hilbert_schmidt_norm ();
+  Real f2h =f2.hilbert_schmidt_norm ();
+  if (diff > 1e-6  * df2h)
+    {
+      fprintf (stderr, "d DF / F = %lf\n", diff /df2h);
+      fprintf (stderr, "d F / F = %lf\n", fdiff /f2h);      
+    }
+#endif
+
+  return flops;
+}
+
+
+/*
+  The non-linear elastic force from tetrahedron ME, is put into
+  GRAD_VEC from DISPLACEMENT_VEC.
+
+  COST:
+
+  (+ picinbono_calc_strain picinbono_constitutive_equation MATRIX::multiply_mtm
+  MATRIX::add_diag
+  MATRIX::multiply_mtm
+    MATRIX::multiply_mtm
+    MATRIX::negate)
+    
+*/
+int
+elastic_force (Element_state const*inme,
+			 MATRIX  * forces,
+			 MATRIX  const &displacement_mat)
+{
+  ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+
+ MATRIX strain;
+  MATRIX stress (strain);
+
+  picinbono_calc_strain (me, &strain, displacement_mat);
+  picinbono_constitutive_equation ( &stress, strain);
+
+  MATRIX F;
+
+  MATRIX::multiply_mm (F, displacement_mat, me->inverse_location_);
+  F.add_diag (1.0);
+
+  *forces = F * stress * me->invloc_transpose_;
+  
+  // force = - dW / dU
+  MATRIX::negate (*forces, *forces);
+
+  int flops = 264;
+
+
+  
+#if PARANOIA
+  Real tol= 1.0e-5; 
+  MATRIX C;
+  MATRIX::square (C, F);
+
+  Real I1 = C.trace ();
+  
+  MATRIX A;
+  A.diag (- lame_mu +  lame_lambda* (0.5 *I1 -1.5));
+  
+  MATRIX::axpy (A, lame_mu, C, A);
+
+  Real dT =(A- stress).hilbert_schmidt_norm ();
+  Real T = stress.hilbert_schmidt_norm();
+  if (dT > tol * T)
+  {
+    fprintf (stderr, "|dT|/|T| = %f",  dT /T);
+  }
+  
+  MATRIX f2, f3;
+
+  picinbono2_elastic_force (me, &f2, displacement_mat);
+  MATRIX::subtract (f3, *forces, f2);
+  Real fh = forces->hilbert_schmidt_norm ();
+  Real f3h =f3.hilbert_schmidt_norm ();
+  if (f3h > fh*tol && fh)
+    {
+      fprintf (stderr, "|df/f| = %f\n", f3h/fh);
+    }
+#endif
+  
+  return flops;
+}
+
+
+/*
+  COST:
+  (setq picinbono_calc_strain (+
+    MATRIX::multiply_mm
+    MATRIX::square
+    MATRIX::double_symmetrify
+    MATRIX::add
+    MATRIX::scale))
+    
+    84
+ */
+void
+picinbono_calc_strain (Element_state const*inme,
+		       MATRIX *strain_dest,
+		       MATRIX  const&displacement_mat) 
+{
+  ELEMENT_STATE const*me = (ELEMENT_STATE const*) inme;
+
+ 
+  assert ( &displacement_mat != strain_dest);
+  MATRIX::multiply_mm (*strain_dest, displacement_mat, me->inverse_location_);
+  
+  MATRIX quad ;
+  
+  /*
+    Note: strain^T * strain, not vice versa.
+   */
+  MATRIX::square (quad,  *strain_dest);
+  MATRIX::double_symmetrify (*strain_dest, *strain_dest);
+  MATRIX::add (*strain_dest, quad, *strain_dest); // 9
+  MATRIX::scale (*strain_dest, 0.5, *strain_dest); // 9
+
+
+#if PARANOIA
+  MATRIX C;
+  MATRIX F;
+  
+  MATRIX::multiply_mm (F, displacement_mat, me->inverse_location_);
+  F.add_diag (1.0);
+   
+  MATRIX::square (C, F);
+  C.add_diag (-1.0);
+  MATRIX E = 0.5 * C;
+
+  Real diff = (E - *strain_dest).hilbert_schmidt_norm ();
+  Real eh =E.hilbert_schmidt_norm();
+  if (eh && diff > eh *1e-6)
+    {
+      fprintf (stderr, "|dE|/|E| = %lf\n", diff /eh);
+    }
+#endif
+}
+

@@ -1,0 +1,102 @@
+2003-04-26  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* plot-h-error.r: use angled-forces iso. static-force
+	scenario. This prevents weirdness with applied forces being off.
+
+2003-04-17  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* GNUmakefile.in (SUBDIRS): change needle -> needle2d
+
+2003-03-14  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle3d/auto-inserter3.cc (Auto_needle_inserter3): new file.
+
+2003-03-12  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle3d/needle-inserter3.cc: new file.
+
+2003-03-06  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* meshlib/edge-watcher.cc: new file
+
+2003-03-04  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle3d/maubach-tree3.cc (simple_bisect): new file.
+
+	* defolib/deformation-state.cc
+	(interpolate_deformation_variables): interpolation in 3d.
+
+2003-02-21  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* defolib/defo-proto.hh: add single precision option.
+
+	* defolib/matrix.hh: grand 2-to-(2,3) rewrite. 
+
+2003-02-12  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* meshlib/mesh-feature.hh (class Element): remove Maubach
+	specifics.  Add Mesh_connectivity::construct_element() to api.
+
+2003-02-09  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* plot-h-error.r (relocation.experiment): rewrite relocation experiment.
+
+2003-02-06  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/deformation-state.cc (set_force): opps. Major bugfix.
+
+	* needle/needle-inserter.cc (Needle_inserter): make variable.
+
+	* needle/mesh-print.cc (print_needle): new function
+
+	* needle/needle-inserter.cc (track_line_through_deformed_mesh):
+	new function.
+
+2003-02-03  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/needle-inserter.cc (auto_needle_insert): make public, set
+	as entry point. Needed for coherence between OpenGL and bare build.  
+
+2003-01-31  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/mesh-topology.cc: add,remove_boundary, add_changed_boundary()
+
+	* needle/mesh-topology-watcher.hh: add separate boundary and
+	element watchers, 
+
+2003-01-30  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/deformation-state.cc (update_forces): refactor
+	code to handle changes and updatings in a cleaner way.
+
+2003-01-29  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/deformation-state.cc: major cleanup of Deformation_state.
+
+2003-01-27  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/needle-inserter.cc (refine_around_needle_tip): node
+	relocation.
+
+2003-01-26  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/friction.cc: new file. 
+
+2003-01-24  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/maubach-tree.cc (refine_uniformly_once): call
+	simple_bisect() directly, don't interpolate.
+
+2003-01-22  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/deformation-state.cc (do_simulation_body): restart CG
+	iteration to prevent rounding off buildup error.
+
+2003-01-20  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/test-mesh.cc (test_scenario): read nodes, compute euc. distances.
+
+2002-12-31  Han-Wen Nienhuys  <hanwen@cs.uu.nl>
+
+	* needle/mesjokke-drawer.hh (class Mesjokke_drawer): visualize
+	with nodes.

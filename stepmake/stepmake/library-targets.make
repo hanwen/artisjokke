@@ -1,0 +1,3 @@
+default: $(LIBRARY)
+
+lib: $(LIBRARY)
