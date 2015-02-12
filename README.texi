@@ -38,7 +38,7 @@ It has been developed and tested on RedHat 9.0.
 
 Compiling is done with the standard
 @example
-  configure ; make 
+  configure --enable-opengl; make 
 @end example
 sequence
 
