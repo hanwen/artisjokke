@@ -139,15 +139,15 @@ public:
 	l_arr.push (elem (i)); 
     *this = l_arr;
   }
-  Array<void*>::swap;
-  Array<void*>::del;
-  Array<void*>::unordered_del;  
-  Array<void*>::size;
-  Array<void*>::clear;
-  Array<void*>::set_size;
-  Array<void*>::empty;
-  Array<void*>::reverse;
-  Array<void*>::tighten_maxsize;
+  using Array<void*>::swap;
+  using Array<void*>::del;
+  using Array<void*>::unordered_del;  
+  using Array<void*>::size;
+  using Array<void*>::clear;
+  using Array<void*>::set_size;
+  using Array<void*>::empty;
+  using Array<void*>::reverse;
+  using Array<void*>::tighten_maxsize;
   T ** access_array () const
     {
       return (T**) Array<void*>::access_array();
