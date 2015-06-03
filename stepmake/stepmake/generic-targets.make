@@ -97,9 +97,6 @@ $(outdir)/VERSION: $(depth)/VERSION
 $(outdir)/version.hh: $(outdir)/VERSION
 	$(PYTHON) $(step-bindir)/make-version.py $< > $@
 
-$(outdir)/config.h: $(config_h)
-	cp -p $< $@
-
 configure: configure.in aclocal.m4
 	NOCONFIGURE=yes $(srcdir)/autogen.sh
 	chmod +x configure

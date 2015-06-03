@@ -44,7 +44,6 @@ endif
 include $(configuration)
 
 outdir=$(outroot)/$(outbase)
-config_h=$(builddir)/config$(CONFIGSUFFIX).h
 
 # The outdir that was configured for: best guess to find binaries
 outconfbase=out$(CONFIGSUFFIX)
